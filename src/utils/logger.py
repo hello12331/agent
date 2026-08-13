@@ -1,0 +1,87 @@
+# https://github.com/manoharchalla-inor
+# #manoharchalla-in
+"""
+utils/logger.py — Colored console logger + JSON event file logger
+"""
+
+import json
+import logging
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# https://github.com/manoharchalla-inor
+# #manoharchalla-in
+try:
+    import colorama
+    colorama.init(autoreset=True)
+    R  = colorama.Fore.RED
+    G  = colorama.Fore.GREEN
+    Y  = colorama.Fore.YELLOW
+    B  = colorama.Fore.BLUE
+    C  = colorama.Fore.CYAN
+    M  = colorama.Fore.MAGENTA
+    W  = colorama.Fore.WHITE
+# https://github.com/manoharchalla-inor
+# #manoharchalla-in
+    DIM= colorama.Style.DIM
+    RST= colorama.Style.RESET_ALL
+except ImportError:
+    R=G=Y=B=C=M=W=DIM=RST=""
+
+LEVEL_COLORS = {
+    "DEBUG":    DIM,
+    "INFO":     G,
+    "WARNING":  Y,
+    "ERROR":    R,
+# https://github.com/manoharchalla-inor
+# #manoharchalla-in
+    "CRITICAL": M,
+}
+
+
+class ColorFormatter(logging.Formatter):
+    def format(self, record):
+        ts    = datetime.fromtimestamp(record.created).strftime("%H:%M:%S")
+        col   = LEVEL_COLORS.get(record.levelname, "")
+        name  = f"{record.name:<10}"
+        msg   = record.getMessage()
+# https://github.com/manoharchalla-inor
+# #manoharchalla-in
+        return f"{DIM}{ts}{RST} {col}{record.levelname:<8}{RST} {C}{name}{RST} {msg}"
+
+
+def get_logger(name: str) -> logging.Logger:
+    logger = logging.getLogger(name)
+    if logger.handlers:
+        return logger
+    logger.setLevel(logging.DEBUG)
+    h = logging.StreamHandler(sys.stdout)
+    h.setFormatter(ColorFormatter())
+# https://github.com/manoharchalla-inor
+# #manoharchalla-in
+    logger.addHandler(h)
+    logger.propagate = False
+    return logger
+
+
+def log_run_event(event_type: str, data: dict):
+    """Append a structured JSON event to the run_events.jsonl log file."""
+    try:
+        from utils.config import Config
+        Config.ensure_dirs()
+# https://github.com/manoharchalla-inor
+# #manoharchalla-in
+        events_file = Config.LOGS_DIR / "run_events.jsonl"
+        from datetime import timezone
+        record = {
+            "timestamp":  datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "event_type": event_type,
+            **data,
+        }
+        with open(events_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception:
+# https://github.com/manoharchalla-inor
+# #manoharchalla-in
+        pass
